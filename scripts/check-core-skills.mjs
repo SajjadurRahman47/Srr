@@ -15,7 +15,8 @@ export const DESCRIPTION_MAX = 320;
 export const CORE_SKILLS = {
   hyperframes: 7360,
   // +256 B for the `_meta.updateNotice` line: the agent relays it, the person updates.
-  "hyperframes-cli": 7616,
+  // +256 B for the unattended pointer: a job with no TTY runs the wrapper or a pinned `npx --yes`.
+  "hyperframes-cli": 7872,
   "hyperframes-registry": 5312,
   "media-use": 5312,
   figma: 7360,
