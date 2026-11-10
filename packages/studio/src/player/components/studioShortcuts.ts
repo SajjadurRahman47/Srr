@@ -32,6 +32,7 @@ export const DEFAULT_STUDIO_KEYS = {
   snap: "s",
   grid: "g",
   timelineSnap: "n",
+  shortcuts: "?",
   playPause: "Space",
   frameBack: "ArrowLeft",
   frameForward: "ArrowRight",
@@ -254,6 +255,7 @@ export function buildShortcutSections(keys: StudioKeys): readonly ShortcutSectio
       hints: [
         { key: k("tabCompositions"), label: "Compositions tab" },
         { key: k("tabAssets"), label: "Assets tab" },
+        { key: k("shortcuts"), label: "Show / hide this panel" },
       ],
     },
     {
