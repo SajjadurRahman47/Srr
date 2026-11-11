@@ -4994,8 +4994,10 @@ async function executeRenderPipeline(input: {
         if (job.config.resumeSegments === true) {
           const existing = readSegmentManifest(segmentDir);
           if (existing) {
-            completedSegments = await validateCompletedSegments(existing, segmentPlanHash, (path) =>
-              probeSegmentFrameCount(path, extractMediaMetadata),
+            completedSegments = await validateCompletedSegments(
+              existing,
+              { planHash: segmentPlanHash, forceScreenshot: capturePlan.forceScreenshot },
+              (path) => probeSegmentFrameCount(path, extractMediaMetadata),
             );
             log.info(`[Render] resuming: ${completedSegments.size} segments complete`, {
               segmentDir,
@@ -5012,6 +5014,7 @@ async function executeRenderPipeline(input: {
         const emptySegmentManifest = (): SegmentManifest => ({
           version: 1,
           planHash: segmentPlanHash,
+          forceScreenshot: capturePlan.forceScreenshot,
           totalFrames,
           segmentFrames,
           completed: [],
@@ -5069,6 +5072,7 @@ async function executeRenderPipeline(input: {
                 browserRecycleEverySegments: resolveSegmentBrowserRecycle(process.env),
                 completedSegments,
                 onSegmentComplete: (entry) => {
+                  segmentManifest.forceScreenshot = segmentedPlan.forceScreenshot;
                   segmentManifest.completed = [
                     ...segmentManifest.completed.filter((e) => e.index !== entry.index),
                     { ...entry, completedAt: new Date().toISOString() },
@@ -5085,8 +5089,13 @@ async function executeRenderPipeline(input: {
         } catch (err) {
           const isVerifyError = isDrawElementVerificationError(err);
           const isDeStall = isDeRendererStallError(err);
+          const isUnforcedSequentialStall =
+            isSequentialCaptureStallError(err) && !capturePlan.forceScreenshot;
           if (
-            (!isVerifyError && !isDrawElementCaptureError(err) && !isDeStall) ||
+            (!isVerifyError &&
+              !isDrawElementCaptureError(err) &&
+              !isDeStall &&
+              !isUnforcedSequentialStall) ||
             err instanceof RenderCancelledError ||
             executionSignal?.aborted === true
           ) {
@@ -5103,7 +5112,9 @@ async function executeRenderPipeline(input: {
           deFallbackFrameIndex = t.frameIndex;
           deFallbackThresholdDb = t.thresholdDb;
           log.warn(
-            "[Render] drawElement capture failed on the segmented path; re-rendering via screenshot",
+            isUnforcedSequentialStall
+              ? "[Render] segmented capture stalled; retrying on a fresh screenshot session"
+              : "[Render] drawElement capture failed on the segmented path; re-rendering via screenshot",
             {
               error: err instanceof Error ? err.message : String(err),
             },
